@@ -1,11 +1,32 @@
 from scipy.optimize import minimize
 import numpy as np
+import random
 
-prices = [1.47, 1.23, 1.12, 0.97, 8.7]
-flash_point = [0.5, 0.5, 0.5, 0.5, 0.5]
-pour_point = [0.5, 0.5, 0.5, 0.5, 0.5]
+from utils.generator import generate_x, generate_bounds
+
+# Define constants and initial values
+base_oils_counts = 4
+
+treat_rates = [
+    0.01,
+    0.1,
+]
+x0 = generate_x(base_oils_counts)
+
+x0_with_additive = generate_x(base_oils_counts, treat_rates)
+prices = [random.uniform(0.5, 1.5) for _ in range(base_oils_counts)] + [
+    random.uniform(5, 10) for _ in range(len(treat_rates))
+]
+flash_point = [
+    random.uniform(0.5, 1.5) for _ in range(base_oils_counts + len(treat_rates))
+]
+pour_point = [
+    random.uniform(0.5, 1.5) for _ in range(base_oils_counts + len(treat_rates))
+]
 FP_min = 0.5
 PP_max = 0.5
+
+# Define objective function, constraints functions and bounds
 
 
 def f(x):
@@ -35,18 +56,13 @@ def callback_function(xk):
     print("Iteration x:", xk)
 
 
-x0_no_additive = [0.2, 0.2, 0.2, 0.2, 0.2]
-x0_with_additive = [0.24, 0.24, 0.24, 0.24, 0.04]
-
-
-# Define constraints
 constraints = (
     {"type": "ineq", "fun": g6},
     {"type": "ineq", "fun": g7},
     {"type": "eq", "fun": g8},
 )
 
-bounds = [(0, 1)] * 4 + [(0.04, 1)]
+bounds = generate_bounds(base_oils_counts, treat_rates)
 
 # Optimization using SciPy's SLSQP
 result = minimize(
