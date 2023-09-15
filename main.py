@@ -14,9 +14,10 @@ treat_rates = [
 x0 = generate_x(base_oils_counts)
 
 x0_with_additive = generate_x(base_oils_counts, treat_rates)
-prices = [random.uniform(0.5, 1.5) for _ in range(base_oils_counts)] + [
-    random.uniform(5, 10) for _ in range(len(treat_rates))
-]
+# prices = [random.uniform(0.5, 1.5) for _ in range(base_oils_counts)] + [
+#     random.uniform(5, 10) for _ in range(len(treat_rates))
+# ]
+prices = [0.49, 0.51, 1.31, 0.98, 5.2, 4.7]
 flash_point = [
     random.uniform(0.5, 1.5) for _ in range(base_oils_counts + len(treat_rates))
 ]
@@ -30,6 +31,8 @@ PP_max = 0.5
 
 
 def f(x):
+    # or sum(x[i] * prices[i] for i in range(len(x)))
+    # or np.sum(x * prices)
     return np.dot(x, prices)
 
 
@@ -52,8 +55,8 @@ def g8(x):
 
 
 def callback_function(xk):
-    x = np.array(xk)
-    print("Iteration x:", xk)
+    print("Iteration x:", ["{:.10f}".format(x) for x in xk])
+    print("Total:", sum(xk))
 
 
 constraints = (
@@ -63,15 +66,30 @@ constraints = (
 )
 
 bounds = generate_bounds(base_oils_counts, treat_rates)
+tolerance = 1e-6
 
 # Optimization using SciPy's SLSQP
+
+print("Initial solution:", x0_with_additive)
+print("Prices:", prices)
+print("Tolerances:", tolerance)
+print("Initial objective value:", f(x0_with_additive))
+print(
+    "Initial constraints values:",
+    g6(x0_with_additive),
+    g7(x0_with_additive),
+    g8(x0_with_additive),
+)
+print("Bounds:", bounds)
+print()
+print("Iteration x:", x0_with_additive)
 result = minimize(
     f,
     x0_with_additive,
     method="SLSQP",
     bounds=bounds,
     constraints=constraints,
-    # callback print x at each iteration
+    tol=tolerance,
     callback=callback_function,
     options={"disp": True},
 )

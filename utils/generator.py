@@ -7,4 +7,6 @@ def generate_x(base_oil_counts, treat_rates=[]):
 
 def generate_bounds(base_oil_counts, treat_rates=[]):
     # [(treat_rate,1)] for treat_rates and [(0,1)] for base_oils
-    return [(0, 1)] * base_oil_counts + [(treat_rate, 1) for treat_rate in treat_rates]
+    return [(0.000001, 1)] * base_oil_counts + [
+        (treat_rate, 1) for treat_rate in treat_rates
+    ]
