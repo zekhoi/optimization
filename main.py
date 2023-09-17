@@ -17,7 +17,7 @@ prices = optimization.helper.generate_prices(base_oils_counts, treat_rates)
 flash_point = optimization.helper.generate_flash_points(base_oils_counts, treat_rates)
 pour_point = optimization.helper.generate_pour_points(base_oils_counts, treat_rates)
 FP_min = 100
-PP_max = 0
+PP_max = 10
 
 # Define objective function, constraints functions and bounds
 
@@ -48,7 +48,7 @@ def g4(x):
         np.power((-0.91725 * np.log(fp_in_fahrenheit_blended / 51708)), 0.5) + 2.6827
     )
     fp_in_celcius = optimization.helper.fahrenheit_to_celcius(fp_in_fahrenheit)
-    return fp_in_celcius - FP_min  # FP_min -
+    return fp_in_celcius - FP_min  # - FP_min
 
 
 def g5(x):
@@ -62,7 +62,7 @@ def g5(x):
     )
     pp_in_rankine = np.power(pp_in_rankine_blended / 3262000, 0.08) * 1000
     pp_in_celcius = optimization.helper.rankine_to_celcius(pp_in_rankine)
-    return pp_in_celcius - PP_max  # - PP_max
+    return PP_max - pp_in_celcius  # PP_max -
 
 
 def g6(x):
