@@ -150,11 +150,11 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     print("f(x):", f(x))
     print("x:", ["{:.10f}".format(x) for x in x])
     print(
-        "Constraints g4 (must greater than {0}):".format(0),
+        "Constraints g4 (must same greater than {0}):".format(0),
         constraints[0]["fun"](x),
     )
     print(
-        "Constraints g5 (must lower than {0}):".format(0),
+        "Constraints g5 (must same greater than {0}):".format(0),
         constraints[1]["fun"](x),
     )
     print("Constraints g6 (must 0):", constraints[2]["fun"](x))
@@ -213,11 +213,11 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
         print("f(x):", f(x))
         print("x:", ["{:.10f}".format(x) for x in x])
         print(
-            "Constraints g4 (must greater than {0}):".format(0),
+            "Constraints g4 (must same greater than {0}):".format(0),
             constraints[0]["fun"](x),
         )
         print(
-            "Constraints g5 (must lower than {0}):".format(0),
+            "Constraints g5 (must same greater than {0}):".format(0),
             constraints[1]["fun"](x),
         )
         print("Constraints g6 (must 0):", constraints[2]["fun"](x))
