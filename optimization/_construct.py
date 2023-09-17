@@ -64,7 +64,6 @@ def constraint_gradients(constraints, x):
             x_plus = x.copy()
             x_plus[i] += epsilon
             gradient[i] = (constraint["fun"](x_plus) - constraint["fun"](x)) / epsilon
-
         gradients.append(gradient)
 
     return gradients

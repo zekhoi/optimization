@@ -56,7 +56,29 @@ def generate_prices(base_oil_counts, treat_rates=[]):
     ]
 
 
-def generate_points(base_oils_counts, treat_rates):
+def generate_pour_points(base_oils_counts, treat_rates):
     return [
-        random.uniform(0.5, 1.5) for _ in range(base_oils_counts + len(treat_rates))
+        # min 273.15
+        random.uniform(-273.15, 0)
+        for _ in range(base_oils_counts + len(treat_rates))
     ]
+
+
+def generate_flash_points(base_oils_counts, treat_rates):
+    return [random.uniform(0, 300) for _ in range(base_oils_counts + len(treat_rates))]
+
+
+def celcius_to_fahrenheit(celcius):
+    return (celcius * (9 / 5)) + 32
+
+
+def fahrenheit_to_celcius(fahrenheit):
+    return (fahrenheit - 32) * (5 / 9)
+
+
+def celcius_to_rankine(celcius):
+    return (celcius * (9 / 5)) + 491.67
+
+
+def rankine_to_celcius(rankine):
+    return (rankine - 491.67) * 5 / 9

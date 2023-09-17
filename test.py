@@ -1,8 +1,9 @@
 import optimization
 import numpy as np
+from scipy.optimize._numdiff import approx_derivative
 
 # Define constants and initial values
-base_oils_counts = 10
+base_oils_counts = 4
 
 treat_rates = [
     0.01,
@@ -13,10 +14,10 @@ x0 = optimization.helper.generate_x(base_oils_counts)
 x0_with_additive = optimization.helper.generate_x(base_oils_counts, treat_rates)
 prices = optimization.helper.generate_prices(base_oils_counts, treat_rates)
 # prices = [0.49, 0.51, 1.31, 0.98, 5.2, 4.7]
-flash_point = optimization.helper.generate_points(base_oils_counts, treat_rates)
-pour_point = optimization.helper.generate_points(base_oils_counts, treat_rates)
-FP_min = 0
-PP_max = 100
+flash_point = optimization.helper.generate_flash_points(base_oils_counts, treat_rates)
+pour_point = optimization.helper.generate_pour_points(base_oils_counts, treat_rates)
+FP_min = 100
+PP_max = 0
 
 # Define objective function, constraints functions and bounds
 
@@ -28,17 +29,40 @@ def f(x):
 
 
 def g4(x):
-    return (
-        sum(
-            x[i] * 51708 * np.exp((np.log(flash_point[i]) - 2.6287) ** 2 / (-0.91725))
-            for i in range(len(x))
+    fp_in_fahrenheit_blended = sum(
+        x[i]
+        * 51708
+        * np.exp(
+            (
+                (
+                    np.log(optimization.helper.celcius_to_fahrenheit(flash_point[i]))
+                    - 2.6287
+                )
+                ** 2
+            )
+            / (-0.91725)
         )
-        - FP_min
+        for i in range(len(x))
     )
+    fp_in_fahrenheit = np.exp(
+        np.power((-0.91725 * np.log(fp_in_fahrenheit_blended / 51708)), 0.5) + 2.6827
+    )
+    fp_in_celcius = optimization.helper.fahrenheit_to_celcius(fp_in_fahrenheit)
+    return fp_in_celcius - FP_min  # FP_min -
 
 
 def g5(x):
-    return PP_max - sum(x[i] * 3262000 * (pour_point[i] / 1000) for i in range(len(x)))
+    pp_in_rankine_blended = sum(
+        x[i]
+        * 3262000
+        * np.power(
+            (optimization.helper.celcius_to_rankine(pour_point[i]) / 1000), 1 / 0.08
+        )
+        for i in range(len(x))
+    )
+    pp_in_rankine = np.power(pp_in_rankine_blended / 3262000, 0.08) * 1000
+    pp_in_celcius = optimization.helper.rankine_to_celcius(pp_in_rankine)
+    return pp_in_celcius - PP_max  # - PP_max
 
 
 def g6(x):
@@ -48,6 +72,10 @@ def g6(x):
 def callback_function(xk):
     print("Iteration x:", ["{:.10f}".format(x) for x in xk])
     print("Total:", sum(xk))
+
+
+def fconstraints(x):
+    return np.array([g4(x), g5(x), g6(x)])
 
 
 constraints = (
@@ -63,7 +91,7 @@ alpha = 1.0
 # Sketch of the algorithm
 
 
-def find_direction(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
+def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     new_bounds = optimization.helper.split_bounds(bounds)
     cons = optimization._construct.new_constraints(constraints, new_bounds)
     x = optimization.helper.clip_x(x0, new_bounds)
@@ -105,81 +133,56 @@ def find_direction(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     c = optimization._evaluate.constraints(x, cons)
     a = optimization._evaluate.constrains_normals(x, cons, la, n, m, meq, mieq)
 
-    jac_eq = optimization._construct.constraint_gradients(cons["eq"], x)
+    cek = optimization._construct.constraint_gradients([constraints[1]], x)
     jac_ineq = optimization._construct.constraint_gradients(cons["ineq"], x)
-    jac_constraints = np.concatenate((jac_eq, jac_ineq), axis=0)
+    jac_eq = optimization._construct.constraint_gradients(cons["eq"], x)
+    jac_constraints = np.concatenate((jac_ineq, jac_eq), axis=0)
+    lagrange = f(x) - sum(fconstraints(x))
+    g_grad = fconstraints(x)
+    direct = np.linalg.lstsq(jac_constraints, g_grad, rcond=None)[0]
+    step = optimization._solver.find_step_size(f, x, constraints, direct, new_bounds)
     constraints_satisfied = False
     iter_count = 0
 
     print("Iteration:", iter_count)
     print("Constraints satisfied:", constraints_satisfied)
     print("Ratio:", sum(x))
-    print("X:", ["{:.10f}".format(x) for x in x])
-    print("Constraints g4 (must lower):", constraints[0]["fun"](x))
-    print("Constraints g5 (must greater):", constraints[1]["fun"](x))
+    print("f(x):", f(x))
+    print("x:", ["{:.10f}".format(x) for x in x])
+    print(
+        "Constraints g4 (must greater than {0}):".format(0),
+        constraints[0]["fun"](x),
+    )
+    print(
+        "Constraints g5 (must lower than {0}):".format(0),
+        constraints[1]["fun"](x),
+    )
     print("Constraints g6 (must 0):", constraints[2]["fun"](x))
+    print()
     while (
         not constraints_satisfied
         and np.linalg.norm(jac_constraints) > eps
         and iter_count < max_iter
     ):
         iter_count += 1
-        print("Iteration:", iter_count)
-        print("Constraints satisfied:", constraints_satisfied)
-        print("Ratio:", sum(x))
-        print("X:", ["{:.10f}".format(x) for x in x])
-        print("Constraints g4 (must lower):", constraints[0]["fun"](x))
-        print("Constraints g5 (must greater):", constraints[1]["fun"](x))
-        print("Constraints g6 (must 0):", constraints[2]["fun"](x))
         jac_eq = optimization._construct.constraint_gradients(cons["eq"], x)
         jac_ineq = optimization._construct.constraint_gradients(cons["ineq"], x)
         jac_constraints = np.concatenate((jac_eq, jac_ineq), axis=0)
-        print(jac_constraints)
-        A = np.vstack((f_grad(x), jac_constraints))
-        b = np.zeros(A.shape[0])
-        b[0] = -1  # Minimize the objective function
-        d1 = np.linalg.lstsq(A, b, rcond=None)[0]
-        # d2 = optimization._solver.find_direction(jac_constraints, f_grad(x))
-        # d3 = -f_grad(x) - np.sum(jac_constraints, axis=0)
-        d4 = optimization._compute.lagrange(
-            f(x),
-            jac_constraints,
-            np.array([0.9 for x in range(len(jac_constraints))]),
+        d = np.linalg.lstsq(jac_constraints, g_grad, rcond=None)[0]
+        step = optimization._solver.find_step_size(
+            f, x, constraints, direct, new_bounds
         )
-        # step1 = optimization._solver.find_step_size(f, x, constraints, d1)
-        # step2 = optimization._solver.find_step_size(f, x, constraints, d2)
-        # step3 = optimization._solver.find_step_size(f, x, constraints, d3)
-        step4 = optimization._solver.find_step_size(f, x, constraints, d4)
+        # print("Step:", step)
+        # print("Direction:", d)
+        x_new = optimization.helper.clip_x(x + step * d, new_bounds)
+        if f(x_new) < f(x):
+            print("x :", ["{:.10f}".format(x) for x in x_new])
+            print("x sum :", sum(x_new))
+            print("fx:", f(x_new))
 
-        # x_new1 = optimization.helper.clip_x(x + step1 * d1, new_bounds)
-        # x_new2 = optimization.helper.clip_x(x + step2 * d2, new_bounds)
-        # x_new3 = optimization.helper.clip_x(x + step3 * d3, new_bounds)
-        x_new4 = optimization.helper.clip_x(x + step4 * d4, new_bounds)
-
-        # if f(x_new1) < f(x):
-        #     print("x1 :", ["{:.10f}".format(x) for x in x_new1])
-        #     print("x1 sum :", sum(x_new1))
-        #     print("fx1:", f(x_new1))
-        #     x = x_new1
-        # if f(x_new2) < f(x):
-        #     print("x1 :", ["{:.10f}".format(x) for x in x_new2])
-        #     print("x1 sum :", sum(x_new2))
-        #     print("fx1:", f(x_new2))
-        #     x = x_new2
-        # if f(x_new3) < f(x):
-        #     print("x3 :", ["{:.10f}".format(x) for x in x_new3])
-        #     print("x3 sum :", sum(x_new3))
-        #     print("fx3:", f(x_new3))
-        #     x = x_new3
-        # if f(x_new4) < f(x):
-        #     print("x4 :", ["{:.10f}".format(x) for x in x_new4])
-        #     print("x4 sum :", sum(x_new4))
-        #     print("fx4:", f(x_new4))
-        #     x = x_new4
-
-        print("Direction:", d4)
-        print("Step:", step4)
-        print()
+        # print("Direction:", d)
+        # print("Step:", step)
+        # print()
         constraints_satisfied = all(
             np.all(constraint["fun"](x) >= 0)
             if constraint["type"] == "ineq"
@@ -187,13 +190,37 @@ def find_direction(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
             for constraint in constraints
         )
 
-        # print("Testing :", x_new)
+        # print(
+        #     "Constraints satisfied:",
+        #     [
+        #         np.all(constraint["fun"](x) >= 0)
+        #         if constraint["type"] == "ineq"
+        #         else np.isclose(constraint["fun"](x), 0)
+        #         for constraint in constraints
+        #     ],
+        # )
+        if np.linalg.norm(x_new - x) < eps and constraints_satisfied:
+            print(
+                "Optimization terminated successfully. The solution is within tolerance."
+            )
+            break
 
-        # if np.linalg.norm(x_new - x) < eps:
-        #     break
+        # Update x for the next iteration
+        x = x_new
+        print("Iteration:", iter_count)
+        print("Constraints satisfied:", constraints_satisfied)
+        print("Ratio:", sum(x))
+        print("f(x):", f(x))
+        print("x:", ["{:.10f}".format(x) for x in x])
+        print(
+            "Constraints g4 (must greater than {0}):".format(0),
+            constraints[0]["fun"](x),
+        )
+        print(
+            "Constraints g5 (must lower than {0}):".format(0),
+            constraints[1]["fun"](x),
+        )
+        print("Constraints g6 (must 0):", constraints[2]["fun"](x))
 
-        # # Update x for the next iteration
-        # x = x_new
 
-
-find_direction(f, x0_with_additive, constraints, bounds)
+solve(f, x0_with_additive, constraints, bounds)
