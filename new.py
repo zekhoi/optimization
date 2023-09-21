@@ -201,16 +201,6 @@ alpha = 1.0
 # Sketch of the algorithm
 
 
-def backtracking_line_search(f, x, direction, constraints, bounds, alpha=1.0, beta=0.5):
-    while True:
-        x_new = x + alpha * direction[: len(x)]
-        x_new = optimization.helper.clip_x(x_new, bounds)
-        if all(c["fun"](x_new) >= 0 for c in constraints):
-            if f(x_new) <= f(x):
-                return alpha
-        alpha *= tolerance  # Reduce alpha and retry
-
-
 def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     new_bounds = optimization.helper.split_bounds(bounds)
     cons = optimization._construct.new_constraints(constraints, new_bounds)
@@ -318,7 +308,6 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
         #         "fun": f(x),
         #     }
         # Update x and the Lagrange multiplier
-        # alpha = backtracking_line_search(f, x, direction, constraints, new_bounds)
         x_new = x + alpha * direction[: len(x)]
         x_new = optimization.helper.clip_x(x_new, new_bounds)
         x_new /= np.sum(x_new)
