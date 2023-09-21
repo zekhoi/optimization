@@ -7,11 +7,10 @@ def objective_gradient(f, x, eps=1e-8):
     Ini kalo gak salah kalkulus 1 nyari turunan pertama dari fungsi
     """
     gradient = np.zeros_like(x)
-
     for i in range(len(x)):
         x_plus = x.copy()
         x_plus[i] += eps
-        gradient[i] = (f(x_plus) - f(x)) / eps
+        gradient[i] = (f(x_plus) - f(x)) / 2 * eps
 
     return gradient
 
@@ -26,7 +25,7 @@ def constraint_gradient(f, x, eps=1e-8):
     for i in range(len(x)):
         x_plus = x.copy()
         x_plus[i] += eps
-        gradient[i] = (f(x_plus) - f(x)) / eps
+        gradient[i] = (f(x_plus) - f(x)) / 2 * eps
 
     return gradient
 

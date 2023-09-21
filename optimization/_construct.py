@@ -53,6 +53,34 @@ def objective_gradient(f, x):
     return gradient
 
 
+def jacobian(constrains, x):
+    n = len(x)
+    m = len(constrains)
+    jacobian = np.zeros((m, n))
+    eps = 1
+    for i in range(n):
+        perturbation = np.zeros(n)
+        perturbation[i] = 1e-6
+        jacobian[:, i] = (
+            np.array([constrain["fun"](x + perturbation) for constrain in constrains])
+            - np.array([constrain["fun"](x - perturbation) for constrain in constrains])
+        ) / (  # type: ignore
+            2 * eps
+        )  # type: ignore
+    return jacobian
+
+
+def hessian(f_grad, x):
+    n = len(x)
+    hessian = np.zeros((n, n))
+    for i in range(len(x)):
+        for j in range(len(x)):
+            hessian[i, j] = approx_derivative(
+                f_grad, x, method="2-point", rel_step=1e-6, f0=None
+            )[i][j]
+    return hessian
+
+
 def constraint_gradients(constraints, x):
     epsilon = 1e-6  # Small value for numerical differentiation
     gradients = []
@@ -77,7 +105,7 @@ def scalar_function(
     bounds=None,
     epsilon=None,
     finite_diff_rel_step=None,
-    hess=None,
+    hess=None,  # type: ignore
 ):
     if callable(jac):
         grad = jac
@@ -116,7 +144,7 @@ def new_constraints(constraints, bounds):
 
         jac = lambda x, *args: new_jac(constraint["fun"], x, bounds)
 
-        cons[type] += (
+        cons[type] += (  # type: ignore
             {"fun": constraint["fun"], "jac": jac, "args": constraint.get("args", ())},
         )
     return cons

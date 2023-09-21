@@ -27,10 +27,10 @@ def clip_fun(func, bounds):
 
 def clip_x(x, bounds):
     if (x < bounds[0]).any() or (x > bounds[1]).any():
-        warnings.warn(
-            "Values in x were outside bounds during!",
-            RuntimeWarning,
-        )
+        # warnings.warn(
+        #     "Values in x were outside bounds during!",
+        #     RuntimeWarning,
+        # )
         x = np.clip(x, bounds[0], bounds[1])
         return x
 
@@ -54,6 +54,10 @@ def generate_prices(base_oil_counts, treat_rates=[]):
     return [random.uniform(0.5, 1.5) for _ in range(base_oil_counts)] + [
         random.uniform(5, 10) for _ in range(len(treat_rates))
     ]
+
+
+def generate_viscosity(base_oils_counts, treat_rates):
+    return [random.uniform(0, 300) for _ in range(base_oils_counts + len(treat_rates))]
 
 
 def generate_pour_points(base_oils_counts, treat_rates):
