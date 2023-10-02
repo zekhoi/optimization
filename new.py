@@ -30,7 +30,7 @@ FP_min = 100
 PP_max = 10
 
 prices = [1.2, 0.98]
-x0 = [0.7, 0.3]
+x0 = [0.3, 0.2]
 base_oils_counts = len(x0)
 flash_point = [100, 200]
 pour_point = [-100, -80]
@@ -122,6 +122,7 @@ def g1_min(x):
 
 def g1_max(x):
     return v40_max - kv(40)(x)
+    return kv(40)(x) - v40_max
 
 
 def g2_min(x):
@@ -130,6 +131,7 @@ def g2_min(x):
 
 def g2_max(x):
     return v100_max - kv(100)(x)
+    return kv(100)(x) - v100_max
 
 
 def g3(x):
@@ -179,7 +181,16 @@ def g6(x):
 
 def g(x):
     return np.array(
-        [g1_min(x), g1_max(x), g2_min(x), g2_max(x), g3(x), g4(x), g5(x), g6(x)]
+        [
+            g1_min(x),
+            g1_max(x),
+            g2_min(x),
+            g2_max(x),
+            g3(x),
+            g4(x),
+            g5(x),
+            g6(x),
+        ]
     )
 
 
@@ -215,54 +226,53 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     iteration = 0
     x_min = x
     alpha = 1.0
-    print("Objective:", f(x))
-    print("Gradient:", f_grad(x))
-    g_grad = np.array(
-        [optimization._compute.constraint_gradient(c["fun"], x) for c in constraints]
-    )
+    # print("Objective:", f(x))
+    # print("Gradient:", f_grad(x))
+    # g_grad = np.array(
+    #     [optimization._compute.constraint_gradient(c["fun"], x) for c in constraints]
+    # )
     gradient = optimization._compute.objective_gradient(f, x)
     jacobian = optimization._construct.jacobian(constraints, x)
-    print("Jacobian:", jacobian)
-    g_grad = np.array(
-        [optimization._compute.constraint_gradient(c["fun"], x) for c in constraints]
-    )
-    H = np.array(
-        approx_derivative(f_grad, x, rel_step=1e-6, f0=gradient),
-    )
-    print("H:", H)
-    A = jacobian
-    print("A:", A)
-    b = np.array(jacobian)
+    # print("Jacobian:", jacobian)
+    # g_grad = np.array(
+    #     [optimization._compute.constraint_gradient(c["fun"], x) for c in constraints]
+    # )
+    # H = np.array(
+    #     approx_derivative(f_grad, x, rel_step=1e-6, f0=gradient),
+    # )
+    # print("H:", H)
+    # A = jacobian
+    # # print("A:", A)
+    # b = np.array(jacobian)
     lambda_ = np.maximum(0, g(x))
-    print("lambda:", lambda_)
-    print(-np.diag(lambda_))
-    kkt_matrix = np.vstack(
-        [
-            np.hstack([H, A.T]),
-            np.hstack([A, -np.diag(lambda_)]),
-        ]
-    )
-    if np.linalg.det(kkt_matrix) == 0:
-        # print("Singular matrix")
-        kkt_matrix += np.eye(len(kkt_matrix)) * eps
-    print("kkt_matrix:", kkt_matrix)
-    rhs = np.concatenate([gradient, g(x)])
-    print("rhs:", rhs)
+    # print("lambda:", lambda_)
+    # print(np.identity(len(lambda_)))
+    # kkt_matrix = np.vstack(
+    #     [
+    #         np.hstack([H, A.T]),
+    #         np.hstack([A, -np.diag(lambda_)]),
+    #     ]
+    # )
+    # if np.linalg.det(kkt_matrix) == 0:
+    #     # print("Singular matrix")
+    #     kkt_matrix += np.eye(len(kkt_matrix)) * eps
+    # print("kkt_matrix:", kkt_matrix)
+    # rhs = np.concatenate([gradient, g(x)])
+    # print("rhs:", rhs)
     # check singularity matrix
     # print("kkt_matrix:", kkt_matrix)
     # print("rhs:", rhs)
-    direction = -np.linalg.solve(kkt_matrix, rhs)
-    print("direction:", direction)
-
-    # lagrange_gradient = gradient - np.sum(lambda_ * jacobian, axis=0)
+    # direction = -np.linalg.solve(kkt_matrix, rhs)
+    # print("direction:", direction)
+    # print(gradient.shape, lambda_.shape, jacobian.shape)
     # print("Lagrange:", lagrange_gradient)
     # print("g_grad:", g_grad)
     # print("b", b)
     while iteration < max_iter:
-        # gradient = optimization._compute.objective_gradient(f, x)
+        gradient = optimization._compute.objective_gradient(f, x)
         gradient = f_grad(x)
         jacobian = optimization._construct.jacobian(constraints, x)
-        g_grad = np.array(
+        jacobian = np.array(
             [
                 optimization._compute.constraint_gradient(c["fun"], x)
                 for c in constraints
@@ -272,7 +282,6 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
             approx_derivative(f_grad, x, rel_step=1e-6, f0=gradient),
         )
         A = jacobian
-        b = np.array(jacobian)
         lambda_ = np.maximum(0, g(x))
         kkt_matrix = np.vstack(
             [

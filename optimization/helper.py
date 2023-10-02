@@ -57,7 +57,7 @@ def generate_prices(base_oil_counts, treat_rates=[]):
 
 
 def generate_viscosity(base_oils_counts, treat_rates):
-    return [random.uniform(0, 300) for _ in range(base_oils_counts + len(treat_rates))]
+    return [random.uniform(0, 100) for _ in range(base_oils_counts + len(treat_rates))]
 
 
 def generate_pour_points(base_oils_counts, treat_rates):
