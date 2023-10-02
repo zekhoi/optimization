@@ -90,7 +90,7 @@ def kv(target):
     return lambda x: calculate_viscosity(x, target, v100, v40)
 
 
-def g3_base(vB_40, vB_100):
+def g3_base(vB_40, vB_100) -> float:
     def get_L_and_H_values_from_table(vB_100):
         kv100_array = d2270["kin_viscosity_100c"]
         L_array = d2270["L"]
@@ -114,6 +114,8 @@ def g3_base(vB_40, vB_100):
         N = (np.log10(H) - np.log10(U)) / np.log10(Y)
         return (np.power(10, N) - 1) / 0.00715 + 100
     elif U == H:
+        return 100
+    else:
         return 100
 
 
@@ -329,8 +331,8 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
     x_min = x
     alpha = 1.0
     while iteration < max_iter:
-        # print("x", x)
-        # print("f(x)", f(x))
+        print("x", x)
+        print("f(x)", f(x))
         # print("sum", sum(x))
         lambda_i = np.array(g(x))
         g_grad = nabla_g(constraints, x)
@@ -343,11 +345,11 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
         # print("G grad :", g_grad)
         # print("B :", B)
         # print("L :", L)
-        print("d :", d)
+        # print("d :", d)
         # print("step :", alpha)
         # print("step :", alpha2)
 
-        # print("x :", x + alpha * d)
+        print("x :", x + alpha * d)
         # print("x :", x + alpha2 * d)
 
         # print("f(x) :", f(x + alpha * d))
@@ -378,7 +380,7 @@ def solve(f, x0, constraints, bounds, max_iter=1000, eps=1e-6):
         x = x_new
         iteration += 1
     return {
-        "x": x_min,
+        "x": x,
         "fun": f(x_min),
         "nit": iteration,
     }
